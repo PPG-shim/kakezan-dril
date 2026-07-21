@@ -748,6 +748,12 @@
       scheduleBgmLoop(audioCtx.currentTime + 0.15);
     }
 
+    function resumeAudioIfNeeded() {
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+    }
+
     function playFanfareNote(startTime, durationSec, midi, peakGain, slideFromMidi) {
       const freq = midiToFreq(midi);
       const startFreq = slideFromMidi ? midiToFreq(slideFromMidi) : freq;
@@ -1056,9 +1062,15 @@
       hintEl.classList.remove("hidden");
     }
 
-    checkBtn.addEventListener("click", checkAnswer);
+    checkBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+      checkAnswer();
+    });
 
     nextBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       makeProblem();
     });
 
@@ -1068,6 +1080,8 @@
     });
 
     nextLevelBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       const idx = LEVELS.indexOf(levelEl.value);
       if (idx < LEVELS.length - 1) {
         levelEl.value = LEVELS[idx + 1];
@@ -1078,6 +1092,8 @@
     });
 
     stayLevelBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       hideLevelClear();
       resetRound();
       makeProblem();
@@ -1088,6 +1104,8 @@
     const backKey = document.getElementById("backKey");
 
     keypadEl.addEventListener("click", (event) => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       const btn = event.target.closest(".key-btn[data-num]");
       if (!btn || answered) return;
       if (answerEl.value.length >= 3) return;
@@ -1095,11 +1113,15 @@
     });
 
     clearKey.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       if (answered) return;
       answerEl.value = "";
     });
 
     backKey.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       if (answered) return;
       answerEl.value = answerEl.value.slice(0, -1);
     });
