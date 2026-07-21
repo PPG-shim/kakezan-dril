@@ -719,6 +719,19 @@
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AudioContextClass();
 
+      // iOSのSafariはユーザー操作の直後にresume()を呼ばないと
+      // AudioContextが"suspended"のままになり、音が出ないことがある
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      // 無音バッファを一度再生してオーディオ経路を確実に開放する（iOS対策）
+      const unlockBuffer = audioCtx.createBuffer(1, 1, 22050);
+      const unlockSource = audioCtx.createBufferSource();
+      unlockSource.buffer = unlockBuffer;
+      unlockSource.connect(audioCtx.destination);
+      unlockSource.start(0);
+
       const compressor = audioCtx.createDynamicsCompressor();
       compressor.threshold.value = -24;
       compressor.knee.value = 24;
@@ -811,7 +824,9 @@
       toggleBgm();
     });
 
-    document.addEventListener("pointerdown", ensureBgmStarted, { once: true });
+    ["touchstart", "touchend", "pointerdown", "mousedown"].forEach((eventName) => {
+      document.addEventListener(eventName, ensureBgmStarted, { once: true, passive: true });
+    });
 
 
     const LEVELS = ["easy", "normal", "hard"];
