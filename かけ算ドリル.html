@@ -719,6 +719,19 @@
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AudioContextClass();
 
+      // iOSのSafariはユーザー操作の直後にresume()を呼ばないと
+      // AudioContextが"suspended"のままになり、音が出ないことがある
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
+
+      // 無音バッファを一度再生してオーディオ経路を確実に開放する（iOS対策）
+      const unlockBuffer = audioCtx.createBuffer(1, 1, 22050);
+      const unlockSource = audioCtx.createBufferSource();
+      unlockSource.buffer = unlockBuffer;
+      unlockSource.connect(audioCtx.destination);
+      unlockSource.start(0);
+
       const compressor = audioCtx.createDynamicsCompressor();
       compressor.threshold.value = -24;
       compressor.knee.value = 24;
@@ -733,6 +746,12 @@
       masterGain.connect(compressor);
 
       scheduleBgmLoop(audioCtx.currentTime + 0.15);
+    }
+
+    function resumeAudioIfNeeded() {
+      if (audioCtx && audioCtx.state === "suspended") {
+        audioCtx.resume();
+      }
     }
 
     function playFanfareNote(startTime, durationSec, midi, peakGain, slideFromMidi) {
@@ -811,7 +830,9 @@
       toggleBgm();
     });
 
-    document.addEventListener("pointerdown", ensureBgmStarted, { once: true });
+    ["touchstart", "touchend", "pointerdown", "mousedown"].forEach((eventName) => {
+      document.addEventListener(eventName, ensureBgmStarted, { once: true, passive: true });
+    });
 
 
     const LEVELS = ["easy", "normal", "hard"];
@@ -1041,9 +1062,25 @@
       hintEl.classList.remove("hidden");
     }
 
-    checkBtn.addEventListener("click", checkAnswer);
+    answerEl.addEventListener("touchstart", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+    }, { passive: true });
+
+    answerEl.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+    });
+
+    checkBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+      checkAnswer();
+    });
 
     nextBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       makeProblem();
     });
 
@@ -1053,6 +1090,8 @@
     });
 
     nextLevelBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       const idx = LEVELS.indexOf(levelEl.value);
       if (idx < LEVELS.length - 1) {
         levelEl.value = LEVELS[idx + 1];
@@ -1063,6 +1102,8 @@
     });
 
     stayLevelBtn.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       hideLevelClear();
       resetRound();
       makeProblem();
@@ -1073,6 +1114,8 @@
     const backKey = document.getElementById("backKey");
 
     keypadEl.addEventListener("click", (event) => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       const btn = event.target.closest(".key-btn[data-num]");
       if (!btn || answered) return;
       if (answerEl.value.length >= 3) return;
@@ -1080,11 +1123,15 @@
     });
 
     clearKey.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       if (answered) return;
       answerEl.value = "";
     });
 
     backKey.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
       if (answered) return;
       answerEl.value = answerEl.value.slice(0, -1);
     });
