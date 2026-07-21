@@ -1062,6 +1062,16 @@
       hintEl.classList.remove("hidden");
     }
 
+    answerEl.addEventListener("touchstart", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+    }, { passive: true });
+
+    answerEl.addEventListener("click", () => {
+      ensureBgmStarted();
+      resumeAudioIfNeeded();
+    });
+
     checkBtn.addEventListener("click", () => {
       ensureBgmStarted();
       resumeAudioIfNeeded();
